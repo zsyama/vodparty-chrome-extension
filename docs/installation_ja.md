@@ -1,5 +1,7 @@
 ## インストール方法
 
+注意: 拡張機能ファイルをインストール後に削除しないでください。
+
 ### Chromium (Chrome, Edge, Opera, Brave など) 
 
 1. [リリースページ](https://github.com/zsyama/vodparty-chrome-extension/releases/latest) から `vodparty-chrome.zip` をダウンロードする
