@@ -5,7 +5,7 @@ const manifest = defineManifest({
   manifest_version: 3,
   description:  "VODparty Chrome Extension Plugin",
   name: "VODparty",
-  version: "0.1.0",
+  version: "0.2.0",
   "permissions": [
     "tabs",
   ],
@@ -19,8 +19,9 @@ const manifest = defineManifest({
     {
       "matches": [
         "https://www.youtube.com/*",
+        "https://animestore.docomo.ne.jp/*",
       ],
-      "js": ["src/content/index.ts"]
+      "js": ["src/content/index.ts", "src/content/dAnimeStore.ts"]
     }
   ],
 });

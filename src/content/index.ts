@@ -12,6 +12,10 @@ const qpList = [
     url: 'https://www.youtube.com/watch',
     vqPath: 'video.video-stream.html5-main-video',
   },
+  {
+    url: 'https://animestore.docomo.ne.jp/animestore/sc_d_pc',
+    vqPath: 'video#video',
+  }
 ];
 let vQuery: HTMLVideoElement | undefined;
 let vPlayTime: number = 0;
