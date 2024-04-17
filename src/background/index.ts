@@ -157,6 +157,11 @@ async function initWebsocket (): Promise<void> {
 
 async function adjustVideoCurrentTime (): Promise<void> {
   if (clientVPI == null || leaderVPI == null || clientVPI.duration !== leaderVPI.duration) {
+    // deSyncしていることを送信
+    socket.send(JSON.stringify({
+      kind: 'SyncStateChanged',
+      value: { state: 2 },
+    }));
     return;
   }
 
@@ -168,11 +173,23 @@ async function adjustVideoCurrentTime (): Promise<void> {
     await chrome.tabs.sendMessage(clientTabId, {
       kind: 'stop',
     });
+
+    // Syncしていることを送信
+    socket.send(JSON.stringify({
+      kind: 'SyncStateChanged',
+      value: { state: 0 },
+    }));
   } else if (!leaderVPI.playing || !clientVPI.playing) {
     await chrome.tabs.sendMessage(clientTabId, {
       kind: 'coldSeek',
       value: leaderVPI,
     });
+
+    // Syncしていることを送信
+    socket.send(JSON.stringify({
+      kind: 'SyncStateChanged',
+      value: { state: 0 },
+    }));
   } else {
     const offsetMSec = Math.abs(leaderVPI.ptime - clientVPI.ptime);
     if (offsetMSec > SEEK_BORDER_MSEC) {
@@ -180,6 +197,12 @@ async function adjustVideoCurrentTime (): Promise<void> {
         kind: 'seek',
         value: [SEEK_LOOKAHEAD_MSEC + new Date().getTime() - leaderVPI.ptime],
       } satisfies AdjustMessage);
+
+      // Syncしていることを送信
+      socket.send(JSON.stringify({
+        kind: 'SyncStateChanged',
+        value: { state: 0 },
+      }));
     } else if (offsetMSec > ADJUST_BORDER_MSEC) {
       if (leaderVPI.ptime > clientVPI.ptime) {
         await chrome.tabs.sendMessage(clientTabId, {
@@ -192,11 +215,18 @@ async function adjustVideoCurrentTime (): Promise<void> {
           value: [1 + ADJUST_SPEED_EFFECT_RATE, (clientVPI.ptime - leaderVPI.ptime) / ADJUST_SPEED_EFFECT_RATE],
         } satisfies AdjustMessage);
       }
+
+      // Syncingであることを送信
+      socket.send(JSON.stringify({
+        kind: 'SyncStateChanged',
+        value: { state: 1 },
+      }));
     } else {
-      // void chrome.tabs.sendMessage(clientTabId, {
-      //   kind: 'changeSpeed',
-      //   value: [1, 0],
-      // } satisfies AdjustMessage);
+      // Syncしていることを送信
+      socket.send(JSON.stringify({
+        kind: 'SyncStateChanged',
+        value: { state: 0 },
+      }));
     }
   }
 }
@@ -224,6 +254,11 @@ chrome.runtime.onMessage.addListener((message, sender) => {
       socket.send(JSON.stringify({
         kind: 'videoStateChanged',
         value: sendData,
+      }));
+
+      socket.send(JSON.stringify({
+        kind: 'SyncStateChanged',
+        value: { state: 0 },
       }));
     } else {
       const p = adjustVideoCurrentTime();
