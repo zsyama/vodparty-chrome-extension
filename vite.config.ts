@@ -1,11 +1,12 @@
 import { crx, defineManifest } from "@crxjs/vite-plugin";
+import zipPack, { Options } from "vite-plugin-zip-pack";
 import { defineConfig } from "vite";
 
 const manifest = defineManifest({
   manifest_version: 3,
   description:  "VODparty Chrome Extension Plugin",
   name: "VODparty",
-  version: "0.2.2",
+  version: "0.2.4",
   "permissions": [
     "tabs",
   ],
@@ -29,6 +30,10 @@ const manifest = defineManifest({
   },
 });
 
+const zipOptions = {
+  outFileName: "vodparty-chrome.zip"
+} as Options;
+
 export default defineConfig({
-  plugins: [crx({ manifest })],
+  plugins: [crx({ manifest }), zipPack(zipOptions)],
 });

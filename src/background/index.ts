@@ -1,3 +1,5 @@
+import { qpList, PauseReason } from '../consts';
+
 // const ROOM_LEADER = true;
 const SEEK_LOOKAHEAD_MSEC = 300;
 const SEEK_BORDER_MSEC = 3000;
@@ -285,6 +287,32 @@ chrome.tabs.onUpdated.addListener((tabId, _, tab) => {
           value: { sessionId },
         }));
       }
+    } else if (
+      clientTabId === tabId &&
+      roomLeader &&
+      clientVPI?.playing === true &&
+      clientVPI.url !== tab.url &&
+      qpList.findIndex((x) => x.url === url.origin + url.pathname) < 0
+    ) {
+      console.log({
+        clientVPI, url: tab.url, roomLeader
+      });
+
+      clientVPI.playing = false;
+      clientVPI.pauseReason = PauseReason.userInteraction;
+      clientVPI.ptime = new Date().getTime() - clientVPI.ptime;
+
+      const sendData = clientVPI;
+      sendData.ptime = sendData.ptime - timeCorrection;
+      socket.send(JSON.stringify({
+        kind: 'videoStateChanged',
+        value: sendData,
+      }));
+
+      socket.send(JSON.stringify({
+        kind: 'SyncStateChanged',
+        value: { state: 2 },
+      }));
     }
   })();
 });

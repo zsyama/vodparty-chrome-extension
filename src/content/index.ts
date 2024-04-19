@@ -1,22 +1,8 @@
+import { qpList, PauseReason } from '../consts';
+
 // const VIDEO_STATE_INTERVAL_HIGH = 50;
 const VIDEO_STATE_INTERVAL_LOW = 1000;
 
-const enum PauseReason {
-  none = 0,
-  buffering = 1,
-  userInteraction = 2,
-};
-
-const qpList = [
-  {
-    url: 'https://www.youtube.com/watch',
-    vqPath: 'video.video-stream.html5-main-video',
-  },
-  {
-    url: 'https://animestore.docomo.ne.jp/animestore/sc_d_pc',
-    vqPath: 'video#video',
-  }
-];
 let vQuery: HTMLVideoElement | undefined;
 let vPlayTime: number = 0;
 /* let videoStateLoop = */ setInterval(getVideoState, VIDEO_STATE_INTERVAL_LOW);
