@@ -4,6 +4,7 @@ type VideoPlayingInfo = {
   pauseReason: number,
   url: string | undefined,
   duration: number,
+  isAds: boolean,
 };
 
 type ResponseMessage = {

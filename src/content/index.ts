@@ -58,6 +58,7 @@ function getVideoState (): void {
         pauseReason,
         duration: vQuery.duration,
         url: document.URL,
+        isAds: isAdvertise(),
       } satisfies VideoPlayingInfo);
 
       vPlayTime = mtime;
@@ -80,6 +81,11 @@ function isTargetURL (): boolean {
   return qpList.findIndex((x) => x.url === cURL.origin + cURL.pathname) !== -1;
 }
 
+function isAdvertise (): boolean {
+  const cURL = new URL(document.URL);
+  return qpList.find((x) => x.url === cURL.origin + cURL.pathname)?.isAdvertise() === true;
+}
+
 chrome.runtime.onMessage.addListener((message) => {
   const adjustMessage = message as AdjustMessage;
   opFunctions.filter(x => x.kind === message.kind).forEach(x => { x.fn(adjustMessage); });
@@ -97,6 +103,15 @@ const opFunctions = [
     fn: (_) => {
       if (vQuery != null) {
         vQuery.pause();
+      }
+    },
+  },
+  {
+    kind: 'adStop',
+    fn: (_) => {
+      if (vQuery != null) {
+        vQuery.pause();
+        alert('VODparty: 他ユーザーで広告が再生中のため、一時停止しました。');
       }
     },
   },

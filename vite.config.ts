@@ -6,7 +6,7 @@ const manifest = defineManifest({
   manifest_version: 3,
   description:  "VODparty Chrome Extension Plugin",
   name: "VODparty",
-  version: "0.2.4",
+  version: "0.2.5",
   "permissions": [
     "tabs",
   ],

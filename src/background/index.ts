@@ -63,6 +63,16 @@ const wsRecvFunctions = [
       console.log(`partyModified TabId:${clientTabId} Leader:${roomLeader}`);
     },
   },
+  {
+    kind: 'videoStopRequest',
+    fn: (_a: WebSocket, _b: ResponseMessage) => {
+      if (roomLeader && clientTabId != null && clientVPI?.isAds === false) {
+        void chrome.tabs.sendMessage(clientTabId, {
+          kind: 'adStop',
+        });
+      }
+    },
+  },
 ] as Array<{
   kind: string;
   fn: (socket: WebSocket, data: ResponseMessage) => void;
@@ -247,9 +257,22 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     }
   }
 
-  clientVPI = message as VideoPlayingInfo;
+  const vpi = message as VideoPlayingInfo;
 
-  if (sender.tab != null && sender.tab.id === clientTabId) {
+  if (sender.tab != null && sender.tab.id === clientTabId && clientVPI != null) {
+    if (vpi.isAds && roomLeader) {
+      if (clientVPI.url !== vpi.url) {
+        return true;
+      } else if (clientVPI.playing) {
+        clientVPI.playing = false;
+        clientVPI.pauseReason = PauseReason.advertisement;
+        clientVPI.ptime = new Date().getTime() - clientVPI.ptime;
+        clientVPI.isAds = true;
+      }
+    } else {
+      clientVPI = vpi;
+    }
+
     if (roomLeader) {
       const sendData = clientVPI;
       sendData.ptime = sendData.ptime - timeCorrection;
@@ -263,8 +286,20 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         value: { state: 0 },
       }));
     } else {
-      const p = adjustVideoCurrentTime();
-      p.catch((e) => { console.log(e) });
+      if (clientVPI.isAds) {
+        socket.send(JSON.stringify({
+          kind: 'videoStopRequest',
+          value: clientVPI.url,
+        }));
+
+        socket.send(JSON.stringify({
+          kind: 'SyncStateChanged',
+          value: { state: 2 },
+        }));
+      } else {
+        const p = adjustVideoCurrentTime();
+        p.catch((e) => { console.log(e) });
+      }
     }
   }
 
