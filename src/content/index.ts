@@ -8,6 +8,12 @@ let vPlayTime: number = 0;
 /* let videoStateLoop = */ setInterval(getVideoState, VIDEO_STATE_INTERVAL_LOW);
 let videoSpeedChangeAfter: number = 0;
 
+function initScript (): void {
+  void chrome.runtime.sendMessage({
+    init: document.URL,
+  });
+}
+
 function getVideoState (): void {
   if (!isTargetURL()) return;
 
@@ -20,6 +26,7 @@ function getVideoState (): void {
     if (query != null) {
       vQuery = query as HTMLVideoElement;
       vQuery.addEventListener('seeked', eventSeek);
+      vQuery.addEventListener('emptied', eventEmptied);
     }
   }
 
@@ -74,6 +81,12 @@ function eventSeek (): void {
       `eventSeek cTime:${vQuery.currentTime} cState:${vQuery.readyState} cPause:${vQuery.paused}`
     );
   }
+}
+
+function eventEmptied (): void {
+  void chrome.runtime.sendMessage({
+    init: document.URL,
+  });
 }
 
 function isTargetURL (): boolean {
@@ -173,3 +186,5 @@ const opFunctions = [
   kind: string;
   fn: (req: AdjustMessage) => void;
 }>;
+
+initScript();

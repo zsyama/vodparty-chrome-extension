@@ -246,34 +246,23 @@ async function adjustVideoCurrentTime (): Promise<void> {
 chrome.runtime.onMessage.addListener((message, sender) => {
   console.log(JSON.stringify(message));
 
-  if (message.partyStart != null) {
-    if (sender.tab?.id != null) {
-      clientTabId = sender.tab.id;
-      roomLeader = message.partyStart;
-      console.log(`partyStart TabId:${clientTabId} Leader:${roomLeader}`);
-      return true;
-    } else {
-      return false;
-    }
-  }
+  if (message.init != null) {
+    if (
+      sender.tab != null &&
+      sender.tab.id === clientTabId &&
+      clientVPI != null &&
+      roomLeader &&
+      clientVPI.playing &&
+      clientVPI.url !== message.init
+    ) {
+      console.log({
+        clientVPI, url: message.init, roomLeader
+      });
 
-  const vpi = message as VideoPlayingInfo;
+      clientVPI.playing = false;
+      clientVPI.pauseReason = PauseReason.userInteraction;
+      clientVPI.ptime = new Date().getTime() - clientVPI.ptime;
 
-  if (sender.tab != null && sender.tab.id === clientTabId && clientVPI != null) {
-    if (vpi.isAds && roomLeader) {
-      if (clientVPI.url !== vpi.url) {
-        return true;
-      } else if (clientVPI.playing) {
-        clientVPI.playing = false;
-        clientVPI.pauseReason = PauseReason.advertisement;
-        clientVPI.ptime = new Date().getTime() - clientVPI.ptime;
-        clientVPI.isAds = true;
-      }
-    } else {
-      clientVPI = vpi;
-    }
-
-    if (roomLeader) {
       const sendData = clientVPI;
       sendData.ptime = sendData.ptime - timeCorrection;
       socket.send(JSON.stringify({
@@ -283,22 +272,57 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 
       socket.send(JSON.stringify({
         kind: 'SyncStateChanged',
-        value: { state: 0 },
+        value: { state: 2 },
       }));
+    }
+
+    return true;
+  }
+
+  const vpi = message as VideoPlayingInfo;
+
+  if (sender.tab != null && sender.tab.id === clientTabId && vpi != null) {
+    if (vpi.isAds && roomLeader) {
+      if (clientVPI?.url !== vpi.url) {
+        return true;
+      } else if (clientVPI?.playing === true) {
+        clientVPI.playing = false;
+        clientVPI.pauseReason = PauseReason.advertisement;
+        clientVPI.ptime = new Date().getTime() - clientVPI.ptime;
+        clientVPI.isAds = true;
+      }
     } else {
-      if (clientVPI.isAds) {
+      clientVPI = vpi;
+    }
+
+    if (clientVPI != null) {
+      if (roomLeader) {
+        const sendData = clientVPI;
+        sendData.ptime = sendData.ptime - timeCorrection;
         socket.send(JSON.stringify({
-          kind: 'videoStopRequest',
-          value: clientVPI.url,
+          kind: 'videoStateChanged',
+          value: sendData,
         }));
 
         socket.send(JSON.stringify({
           kind: 'SyncStateChanged',
-          value: { state: 2 },
+          value: { state: 0 },
         }));
       } else {
-        const p = adjustVideoCurrentTime();
-        p.catch((e) => { console.log(e) });
+        if (clientVPI.isAds) {
+          socket.send(JSON.stringify({
+            kind: 'videoStopRequest',
+            value: clientVPI.url,
+          }));
+
+          socket.send(JSON.stringify({
+            kind: 'SyncStateChanged',
+            value: { state: 2 },
+          }));
+        } else {
+          const p = adjustVideoCurrentTime();
+          p.catch((e) => { console.log(e) });
+        }
       }
     }
   }
@@ -327,7 +351,7 @@ chrome.tabs.onUpdated.addListener((tabId, _, tab) => {
       roomLeader &&
       clientVPI?.playing === true &&
       clientVPI.url !== tab.url &&
-      qpList.findIndex((x) => x.url === url.origin + url.pathname) < 0
+      qpList.findIndex((x) => new URL(x.url).origin === url.origin) < 0
     ) {
       console.log({
         clientVPI, url: tab.url, roomLeader
